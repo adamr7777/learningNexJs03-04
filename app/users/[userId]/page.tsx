@@ -1,10 +1,12 @@
 import {Suspense} from 'react';
+import { notFound } from 'next/navigation'
 
 import getSingleUser from '@/lib/getSingleUser';
 import getUserPosts from '@/lib/getUserPosts';
 import styles from './page.module.css';;
 import Link from 'next/link';
 import UserPosts from './Components/UserPosts';
+import getUsers from '@/lib/getUsers';
 
 
 type Params = {
@@ -13,9 +15,15 @@ type Params = {
     };
 };
 
-export async function generateMetadata({ params: { userId } }: Params): Promise<any> {
+async function generateMetadata({ params: { userId } }: Params): Promise<any> {
     const userData: Promise<User> = getSingleUser(userId);
-    const user: User = await userData
+    const user: User = await userData;
+
+    if (user === undefined) {
+        return {
+            title: "User Not Found"
+        };
+    };
 
     return {
         title: user.name,
@@ -27,8 +35,8 @@ export async function generateMetadata({ params: { userId } }: Params): Promise<
 async function UserPage({params: {userId}}: Params) {
     const userData: Promise<User> = getSingleUser(userId);
     const user = await userData;
+    if (user === undefined) notFound();
     const postsData: Promise<{}[]> = getUserPosts(userId);
-
     return (
         <div className={styles.main}>
             <h2>{user.name}</h2>
@@ -43,4 +51,13 @@ async function UserPage({params: {userId}}: Params) {
     );
 };
 
+async function generateStaticParams() {
+    const usersData: Promise<User[]> = getUsers();
+    const users = await usersData;
+    return users.map((item)=> {
+        {userId: item.id.toString()}
+    });
+};
+
+export {generateMetadata, generateStaticParams};
 export default UserPage;
